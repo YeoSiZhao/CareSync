@@ -161,7 +161,7 @@ void connectWiFi() {
 }
 
 void syncTime() {
-  configTime(8 * 3600, 0, "pool.ntp.org"); // SG timezone
+  configTime(8 * 3600, 0, "pool.ntp.org"); // UTC+8
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
     Serial.println("Failed to sync time");
@@ -257,8 +257,8 @@ void sendHeartbeat() {
 
 String getTimestamp() {
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) return "1970-01-01T00:00:00Z";
-  char buf[30];
-  strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+  if (!getLocalTime(&timeinfo)) return "1970-01-01T00:00:00+08:00";
+  char buf[32];
+  strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S+08:00", &timeinfo);
   return String(buf);
 }
