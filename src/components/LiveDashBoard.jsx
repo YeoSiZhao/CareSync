@@ -17,7 +17,6 @@ const LiveDashboard = ({
   const pastEvents = latestEvent ? events.slice(1) : events;
   const totalPages = Math.max(1, Math.ceil(pastEvents.length / pageSize));
   const safePage = Math.min(page, totalPages);
-
   const { pageEvents, startIndex, endIndex } = useMemo(() => {
     const start = (safePage - 1) * pageSize;
     const end = Math.min(start + pageSize, pastEvents.length);

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, TrendingUp, Moon, User, Heart, Activity as Pulse, Volume2, MessageCircle } from 'lucide-react';
+import { Activity, Settings, TrendingUp, CalendarDays, Moon, User, Heart, Activity as Pulse, Volume2, MessageCircle } from 'lucide-react';
 import useRealtimeEvents from './hooks/useRealTimeEvents';
 import LiveDashboard from './LiveDashBoard';
 import Analytics from './Analytics';
+import Logs from './Logs';
 import './CareSync.css';
 
 const CareSync = () => {
@@ -144,6 +145,9 @@ const CareSync = () => {
           <button onClick={() => setActiveTab('analytics')} className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}>
             <TrendingUp size={18} /> Analytics
           </button>
+          <button onClick={() => setActiveTab('logs')} className={`nav-tab ${activeTab === 'logs' ? 'active' : ''}`}>
+            <CalendarDays size={18} /> Logs
+          </button>
         </nav>
 
         {activeTab === 'live' && (
@@ -157,6 +161,7 @@ const CareSync = () => {
           />
         )}
         {activeTab === 'analytics' && <Analytics last24Hours={last24Hours} needConfig={needConfig} typeCounts={typeCounts} mlResults={mlResults} mlLoading={mlLoading} lastTrained={lastTrained} runMLPipeline={runMLPipeline} currentTime={currentTime} />}
+        {activeTab === 'logs' && <Logs events={events} needConfig={needConfig} />}
         {activeTab === 'settings' && <SettingsView needConfig={needConfig} />}
       </div>
 
