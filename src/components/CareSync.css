@@ -684,6 +684,72 @@ body {
   gap: 0.35rem;
 }
 
+.care-rhythm-card {
+  position: relative;
+}
+
+.care-rhythm-header {
+  background: linear-gradient(135deg, rgba(95, 143, 215, 0.18), rgba(241, 161, 90, 0.2));
+}
+
+.care-rhythm-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-400);
+}
+
+.care-rhythm-summary {
+  gap: 1rem;
+}
+
+.care-rhythm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line-100);
+  border-left: 4px solid var(--accent-color, #94a3b8);
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.care-rhythm-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-400);
+}
+
+.care-rhythm-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.care-rhythm-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--ink-500);
+}
+
+.care-rhythm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-color, #64748b);
+  background-color: #eef2ff;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
 .log-list {
   display: flex;
   flex-direction: column;
@@ -756,6 +822,38 @@ body {
   margin-top: 0.35rem;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.risk-bar {
+  margin-top: 0.5rem;
+}
+
+.risk-bar-track {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%);
+  overflow: hidden;
+  position: relative;
+}
+
+.risk-bar-fill {
+  display: block;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.risk-bar-marker {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #0f172a;
+  border: 2px solid #ffffff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
 }
 
 .risk-low {

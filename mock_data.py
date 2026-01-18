@@ -5,7 +5,7 @@ import time
 
 API_URL = "http://localhost:8080/api/event"   # your backend endpoint
 
-labels = ["tired", "space", "company", "pain", "music", "talk"]
+labels = ["tired", "space", "company", "pain", "music"]
 
 def send_bulk_events(n=500):
     now = datetime.now()

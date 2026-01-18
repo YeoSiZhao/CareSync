@@ -2,7 +2,7 @@ import { TrendingUp, BarChart2, PieChart, Brain } from 'lucide-react';
 import React from 'react';
 import './CareSync.css';
 
-const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained, runMLPipeline, currentTime }) => {
+const Analytics = ({ last24Hours, needConfig, typeCounts, mlResults, mlLoading, lastTrained, runMLPipeline, currentTime }) => {
 
   const maxCount = Math.max(...Object.values(typeCounts), 1);
   const totalCount = Object.values(typeCounts).reduce((sum, value) => sum + value, 0);
@@ -16,7 +16,6 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained
     tired: 2,
     space: 1.5,
     company: 1.5,
-    talk: 1.5,
     music: 1
   };
   const totalWeight = recentEvents.reduce((sum, event) => {
@@ -27,6 +26,7 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained
   const volumeFactor = Math.min(1, recentEvents.length / 10);
   const riskScore = Math.round((severity * 0.6 + volumeFactor * 0.4) * 100);
   const riskLabel = riskScore >= 70 ? 'High' : riskScore >= 40 ? 'Moderate' : 'Low';
+  const riskText = `${riskLabel} risk`;
 
   const pieSegments = Object.entries(typeCounts)
     .filter(([, count]) => count > 0)
@@ -57,6 +57,26 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained
 
   const maxHourlyCount = Math.max(...hourlyStats.map((stat) => stat.count), 1);
 
+  const getTopPrediction = () => {
+    if (!mlResults || mlResults.error) return null;
+
+    const entries = Object.entries(mlResults)
+      // eslint-disable-next-line no-unused-vars
+      .filter(([label, val]) => typeof val === 'number' && !isNaN(val));
+
+    if (entries.length === 0) return null;
+
+    const [label, prob] = entries.sort(([, a], [, b]) => b - a)[0];
+    const config = needConfig[label];
+    const Icon = config ? config.icon : null;
+
+    return (
+      <span>
+        {Icon && <Icon size={14} />} {config ? config.label : label} ({(prob * 100).toFixed(0)}%)
+      </span>
+    );
+  };
+
   return (
     <div className="dashboard-content">
       <div className="card training-card">
@@ -72,6 +92,15 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained
             {mlLoading ? 'Updating...' : 'Get Next Prediction'}
           </button>
         </div>
+        {mlResults && (
+          <div className="training-meta" style={{ marginTop: '8px' }}>
+            {mlResults.error ? (
+              <span>Prediction failed: {mlResults.error}</span>
+            ) : (
+              <span>Next likely event: {getTopPrediction() || 'No prediction available'}</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="stats-grid">
@@ -82,7 +111,20 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlLoading, lastTrained
         <div className="stat-card">
           <div className="stat-value">{riskScore}</div>
           <div className="stat-label">Care Risk Score</div>
-          <div className={`risk-label risk-${riskLabel.toLowerCase()}`}>{riskLabel} (last 2h)</div>
+          <div className="risk-bar">
+            <span className="risk-bar-track">
+              <span
+                className="risk-bar-fill"
+                style={{ width: `${riskScore}%` }}
+              />
+              <span
+                className="risk-bar-marker"
+                style={{ left: `${riskScore}%` }}
+                aria-hidden="true"
+              />
+            </span>
+          </div>
+          <div className={`risk-label risk-${riskLabel.toLowerCase()}`}>{riskText}</div>
         </div>
         <div className="stat-card">
           <div className="stat-value stat-value-success">

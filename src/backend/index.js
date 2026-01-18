@@ -31,6 +31,7 @@ app.use(express.json());
 // ===== POST /api/event =====
 app.post("/api/event", async (req, res) => {
   try {
+    console.log("EVENT BODY", req.body);
     const { device_id, label, timestamp } = req.body;
     const eventRef = await db.collection("events").add({
       device_id,
@@ -239,4 +240,5 @@ app.post("/api/ml/train", async (req, res) => {
 });
 
 // ===== Start Server =====
-app.listen(8080, () => console.log("Backend running on port 8080"));
+app.listen(8080, "0.0.0.0", () => console.log("Backend running on port 8080"));
+

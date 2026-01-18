@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, TrendingUp, CalendarDays, Moon, User, Heart, Activity as Pulse, Volume2, MessageCircle } from 'lucide-react';
+import { Activity, Settings, TrendingUp, CalendarDays, Moon, User, Heart, Activity as Pulse, Volume2 } from 'lucide-react';
 import useRealtimeEvents from './hooks/useRealTimeEvents';
 import LiveDashboard from './LiveDashBoard';
 import Analytics from './Analytics';
@@ -88,8 +88,7 @@ const CareSync = () => {
     space: { icon: User, color: 'purple', label: 'Need Space' },
     company: { icon: Heart, color: 'pink', label: 'Want Company' },
     pain: { icon: Pulse, color: 'red', label: 'In Pain' },
-    music: { icon: Volume2, color: 'green', label: 'Music' },
-    talk: { icon: MessageCircle, color: 'blue', label: 'Want to Talk' }
+    music: { icon: Volume2, color: 'green', label: 'Music' }
   };
 
   const acknowledgeEvent = id => setEvents(id, { acknowledged: true });
@@ -125,13 +124,13 @@ const CareSync = () => {
             <p className="header-slogan">Calm, connected care for every moment.</p>
           </div>
           <div className="header-status">
-            <div className={`connection-status ${isDeviceOnline('caregiver') ? 'online' : 'offline'}`}>
+            <div className={`connection-status ${isDeviceOnline('Care Recipient') ? 'online' : 'offline'}`}>
               <div className="status-dot"></div>
-              <span>Caregiver: {isDeviceOnline('caregiver') ? 'Connected' : 'Offline'}</span>
+              <span>Care Recipient: {isDeviceOnline('Care Recipient') ? 'Connected' : 'Offline'}</span>
             </div>
-            <div className={`connection-status ${isDeviceOnline('caretaker') ? 'online' : 'offline'}`}>
+            <div className={`connection-status ${isDeviceOnline('Caregiver') ? 'online' : 'offline'}`}>
               <div className="status-dot"></div>
-              <span>Caretaker: {isDeviceOnline('caretaker') ? 'Connected' : 'Offline'}</span>
+              <span>Caregiver: {isDeviceOnline('Caregiver') ? 'Connected' : 'Offline'}</span>
             </div>
           </div>
         </div>
@@ -172,7 +171,7 @@ const CareSync = () => {
             <textarea
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
-              placeholder="e.g., 'Gave medication', 'Talked for 15 minutes'..."
+              placeholder="e.g., 'Gave medication', 'Sat together for 15 minutes'..."
               className="modal-textarea"
             />
             <div className="modal-actions">

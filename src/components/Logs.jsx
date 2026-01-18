@@ -90,29 +90,43 @@ const Logs = ({ events, needConfig }) => {
     return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   };
 
+  const topConfig = topActivity ? needConfig[topActivity[0]] : null;
+
   return (
     <div className="dashboard-content">
-      <div className="card">
-        <div className="card-header">
-          <h2>Care Rhythm Overview</h2>
+      <div className="card care-rhythm-card">
+        <div className="card-header care-rhythm-header">
+          <div>
+            <h2>Care Rhythm Overview</h2>
+            <p className="care-rhythm-subtitle">
+              A quick read on the busiest moments and most common needs.
+            </p>
+          </div>
         </div>
-        <div className="logs-summary">
-          <div className="logs-summary-item">
-            <span className="summary-label">Busiest Day</span>
-            <span className="summary-value">
+        <div className="logs-summary care-rhythm-summary">
+          <div className="care-rhythm-item">
+            <span className="care-rhythm-label">Busiest Day</span>
+            <span className="care-rhythm-value">
               {busiestDay ? formatDate(busiestDay.date) : 'No data yet'}
             </span>
             {busiestDay && (
-              <span className="summary-muted">{busiestDay.count} requests</span>
+              <span className="care-rhythm-meta">{busiestDay.count} requests</span>
             )}
           </div>
-          <div className="logs-summary-item">
-            <span className="summary-label">Most In-demand</span>
-            <span className="summary-value">
-              {topActivity ? needConfig[topActivity[0]].label : 'No data yet'}
+          <div
+            className="care-rhythm-item"
+            style={
+              topConfig ? { '--accent-color': `var(--${topConfig.color}-500)` } : undefined
+            }
+          >
+            <span className="care-rhythm-label">Most In-demand</span>
+            <span className="care-rhythm-value">
+              {topActivity ? (topConfig ? topConfig.label : topActivity[0]) : 'No data yet'}
             </span>
             {topActivity && (
-              <span className="summary-muted">{topActivity[1]} requests</span>
+              <span className="care-rhythm-meta">
+                <span>{topActivity[1]} requests</span>
+              </span>
             )}
           </div>
         </div>
