@@ -119,7 +119,7 @@ const CareSync = () => {
           <div className="header-info">
             <div className="header-title">
               <img src="/icon.png" alt="CareSync Icon" className="app-icon" />
-              <h1>CareSync Companion</h1>
+              <h1>CareSync</h1>
             </div>
             <p className="header-slogan">Calm, connected care for every moment.</p>
           </div>
