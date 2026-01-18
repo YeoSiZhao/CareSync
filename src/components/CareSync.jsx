@@ -3,7 +3,6 @@ import { Activity, Settings, TrendingUp, Moon, User, Heart, Activity as Pulse, V
 import useRealtimeEvents from './hooks/useRealTimeEvents';
 import LiveDashboard from './LiveDashBoard';
 import Analytics from './Analytics';
-import SettingsView from './SettingsViews';
 import './CareSync.css';
 
 const CareSync = () => {
@@ -12,11 +11,76 @@ const CareSync = () => {
   const [showNoteModal, setShowNoteModal] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
+  const [devices, setDevices] = useState([]);
+  const [mlResults, setMlResults] = useState(null);
+  const [mlLoading, setMlLoading] = useState(false);
+  const [lastTrained, setLastTrained] = useState(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let eventSource;
+    let isMounted = true;
+
+    const fetchDevices = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/devices');
+        const data = await response.json();
+        if (!isMounted) return;
+        setDevices(data);
+      } catch (error) {
+        console.error('Error fetching devices:', error);
+      }
+    };
+
+    fetchDevices();
+
+    eventSource = new EventSource('http://localhost:8080/api/devices/stream');
+    eventSource.onmessage = (event) => {
+      if (!event.data) return;
+      const payload = JSON.parse(event.data);
+      setDevices((prev) => {
+        const next = [...prev];
+        const idx = next.findIndex((device) => device.id === payload.id);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], last_seen: payload.last_seen };
+        } else {
+          next.push({ id: payload.id, last_seen: payload.last_seen });
+        }
+        return next;
+      });
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('Device stream error:', err);
+    };
+
+    return () => {
+      isMounted = false;
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, []);
+
+  const runMLPipeline = async () => {
+    setMlLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/ml/train', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      setMlResults(data);
+      setLastTrained(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error running ML pipeline:', error);
+      setMlResults({ error: 'Failed to run ML pipeline' });
+    }
+    setMlLoading(false);
+  };
 
   const needConfig = {
     tired: { icon: Moon, color: 'indigo', label: 'Tired' },
@@ -27,9 +91,9 @@ const CareSync = () => {
     talk: { icon: MessageCircle, color: 'blue', label: 'Want to Talk' }
   };
 
-  const acknowledgeEvent = id => setEvents(prev => prev.map(e => e.id === id ? { ...e, acknowledged: true } : e));
+  const acknowledgeEvent = id => setEvents(id, { acknowledged: true });
   const addNote = (id, note) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, note, acknowledged: true } : e));
+    setEvents(id, { acknowledged: true, note });
     setShowNoteModal(null);
     setNoteText('');
   };
@@ -41,15 +105,34 @@ const CareSync = () => {
     return acc;
   }, {});
 
+  const isDeviceOnline = (deviceId) => {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return false;
+    const lastSeen = new Date(device.last_seen).getTime();
+    return (currentTime - lastSeen) < 300000; // 5 minutes
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
         <div className="header-content">
           <div className="header-info">
-            <h1>CareSync Companion</h1>
-            <p>Empowering dignified communication</p>
+            <div className="header-title">
+              <img src="/icon.png" alt="CareSync Icon" className="app-icon" />
+              <h1>CareSync Companion</h1>
+            </div>
+            <p className="header-slogan">Calm, connected care for every moment.</p>
           </div>
-          {unacknowledgedCount > 0 && <div className="notification-badge">{unacknowledgedCount}</div>}
+          <div className="header-status">
+            <div className={`connection-status ${isDeviceOnline('caregiver') ? 'online' : 'offline'}`}>
+              <div className="status-dot"></div>
+              <span>Caregiver: {isDeviceOnline('caregiver') ? 'Connected' : 'Offline'}</span>
+            </div>
+            <div className={`connection-status ${isDeviceOnline('caretaker') ? 'online' : 'offline'}`}>
+              <div className="status-dot"></div>
+              <span>Caretaker: {isDeviceOnline('caretaker') ? 'Connected' : 'Offline'}</span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -61,13 +144,19 @@ const CareSync = () => {
           <button onClick={() => setActiveTab('analytics')} className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}>
             <TrendingUp size={18} /> Analytics
           </button>
-          <button onClick={() => setActiveTab('settings')} className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}>
-            <Settings size={18} /> Settings
-          </button>
         </nav>
 
-        {activeTab === 'live' && <LiveDashboard events={events} needConfig={needConfig} acknowledgeEvent={acknowledgeEvent} setShowNoteModal={setShowNoteModal} unacknowledgedCount={unacknowledgedCount} />}
-        {activeTab === 'analytics' && <Analytics last24Hours={last24Hours} needConfig={needConfig} typeCounts={typeCounts} />}
+        {activeTab === 'live' && (
+          <LiveDashboard
+            events={events}
+            needConfig={needConfig}
+            acknowledgeEvent={acknowledgeEvent}
+            setShowNoteModal={setShowNoteModal}
+            unacknowledgedCount={unacknowledgedCount}
+            mlResults={mlResults}
+          />
+        )}
+        {activeTab === 'analytics' && <Analytics last24Hours={last24Hours} needConfig={needConfig} typeCounts={typeCounts} mlResults={mlResults} mlLoading={mlLoading} lastTrained={lastTrained} runMLPipeline={runMLPipeline} currentTime={currentTime} />}
         {activeTab === 'settings' && <SettingsView needConfig={needConfig} />}
       </div>
 
