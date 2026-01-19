@@ -113,3 +113,6 @@ the current score.
 - Devices show offline: device heartbeat must update within 5 minutes.
 - ML training failed: ensure Python, numpy, and tensorflow are installed and
   there are enough events for training.
+
+### See More
+Slides: https://tinyurl.com/CareSyncH4G
