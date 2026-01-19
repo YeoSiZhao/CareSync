@@ -1,13 +1,13 @@
 # CareSync
 
-CareSync is a real-time companion dashboard for caregiver support. It ingests device feedback events, streams live updates to the UI, and uses a lightweight ML pipeline to predict the next likely need.
+CareSync is a real-time companion dashboard for caregiver support. It takes in device feedback events, streams live updates to the UI, and uses a lightweight ML pipeline to predict the next likely need.
 
 ## Problem Statement
 Develop a solution that improve relationships between caregiver and the care recipient so that caregivers can provide the care that the care recipients want/need in a mutually respectful, meaningful, and joyful way?
 
 ## Features
 
-- Live dashboard with latest event, acknowledgements, and predictions
+- Live dashboard with latest events recorded
 - Analytics view with risk score, activity summaries, and trend visuals
 - Logs view with daily and weekly rhythm summaries
 - Real-time updates via server-sent events (SSE)
@@ -17,16 +17,15 @@ Develop a solution that improve relationships between caregiver and the care rec
 
 - Frontend: React + Vite in `src/`
 - Backend: Node/Express + Firestore in `src/backend/`
-- ML: Python script `src/backend/ml_train.py`
-- Devices: ESP32 (or other clients) post events and heartbeats
+- ML: Python script in `src/backend/ml_train.py`
+- Devices: ESP32 x2 (Sender and Receiver) in `hardware/`
 
 ## Project Structure
 
 - `src/components/` UI components (Live, Analytics, Logs)
-- `src/components/hooks/` data fetching + SSE hooks
+- `src/components/hooks/` Data fetching + SSE hooks
 - `src/backend/index.js` Express server and Firestore integration
 - `src/backend/ml_train.py` ML training pipeline
-- `mock_data.py` helper script to seed test events
 - `hardware/` ESP32 firmware for caregiver and care recipient devices
 
 ## Getting Started
@@ -36,6 +35,7 @@ Develop a solution that improve relationships between caregiver and the care rec
 - Node.js 18+ (for Vite + Express)
 - Python 3.10+ (for ML training)
 - Firebase project + service account key (Firestore enabled)
+- PlatformIO on Visual Studio Code / Arduino IDE
 
 ### Install
 
@@ -63,31 +63,25 @@ The backend listens on port 8080.
 npm run dev
 ```
 
-### Optional: Seed Sample Events
-
-```bash
-python mock_data.py
-```
-
 ## ESP32 Devices (hardware/)
 
 CareSync includes two ESP32 sketches:
 
-- `hardware/CareRecipient.cpp`: sends button feedback to the backend (HTTP) and to the caregiver device (UDP).
-- `hardware/Caregiver.cpp`: receives UDP alerts and flashes an RGB LED, plus sends heartbeat pings to the backend.
+- `hardware/CareRecipient.cpp`: Sends button feedback to the backend (HTTP) and to the caregiver device (UDP).
+- `hardware/Caregiver.cpp`: Receives UDP alerts and flashes an RGB LED, plus sends heartbeat pings to the backend.
 
 ### Configure the ESP32 sketches
 
 Update these constants in both sketches:
 
-- `WIFI_SSID` / `WIFI_PASSWORD`: your Wi-Fi or hotspot credentials.
-- `BACKEND_BASE`: the backend IP and port on the same network as the ESP32 (example: `http://192.168.142.184:8080`).
-- `DEVICE_ID`: the device identifier stored in Firestore (match this with what the UI expects if you want an online indicator).
+- `WIFI_SSID` / `WIFI_PASSWORD`: Your Wi-Fi or hotspot credentials.
+- `BACKEND_BASE`: The backend IP and port on the same network as the ESP32 (example: `http://192.168.142.184:8080`).
+- `DEVICE_ID`: The device identifier stored in Firestore (match this with what the UI expects if you want an online indicator).
 
-For UDP routing (CareRecipient):
+After connecting all devices to the above Wi-Fi network, update the following constants (CareRecipient):
 
 - `DEVICE_B_IP` / `DEVICE_B_PORT`: IP and port of the caregiver device.
-- `LAPTOP_IP` / `LAPTOP_PORT`: optional local debug listener.
+- `LAPTOP_IP` / `LAPTOP_PORT`: Optional local debug listener.
 
 ### Flash and run
 
@@ -103,8 +97,8 @@ The script builds a small LSTM sequence model (seq_len 5), trains on the
 event history, saves a model snapshot, and returns probabilities for the
 next likely event.
 
-Minimum training data: more than 5 labeled events. For useful predictions,
-aim for dozens per label.
+Minimum training data: more than 5 labeled events.
+For useful predictions, aim for dozens per label.
 
 ## Care Risk Score
 
