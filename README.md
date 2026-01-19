@@ -2,6 +2,9 @@
 
 CareSync is a real-time companion dashboard for caregiver support. It ingests device feedback events, streams live updates to the UI, and uses a lightweight ML pipeline to predict the next likely need.
 
+## Problem Statement
+Develop a solution that improve relationships between caregiver and the care recipient so that caregivers can provide the care that the care recipients want/need in a mutually respectful, meaningful, and joyful way?
+
 ## Features
 
 - Live dashboard with latest event, acknowledgements, and predictions
