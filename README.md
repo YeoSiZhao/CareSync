@@ -63,6 +63,24 @@ The backend listens on port 8080.
 npm run dev
 ```
 
+## Simulate Events with curl
+
+You can post a single event to the backend using curl ("device_id":"Caregiver" / "Care Recipient"):
+
+```bash
+curl -X POST http://localhost:8080/api/event \
+  -H "Content-Type: application/json" \
+  -d '{"device_id":"Caregiver","label":"tired","timestamp":"2026-04-15T11:00:00Z"}'
+```
+
+You can also post a heartbeat:
+
+```bash
+curl -X POST http://localhost:8080/api/heartbeat \
+  -H "Content-Type: application/json" \
+  -d '{"device_id":"Caregiver"}'
+```
+
 ## ESP32 Devices (hardware/)
 
 CareSync includes two ESP32 sketches:
