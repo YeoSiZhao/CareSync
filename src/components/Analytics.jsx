@@ -128,9 +128,9 @@ const Analytics = ({ last24Hours, needConfig, typeCounts, mlResults, mlLoading, 
         </div>
         <div className="stat-card">
           <div className="stat-value stat-value-success">
-            {Math.round((last24Hours.filter(e => e.acknowledged).length / last24Hours.length) * 100) || 0}%
+            {last24Hours.filter(e => e.note).length}
           </div>
-          <div className="stat-label">Response Rate</div>
+          <div className="stat-label">Notes Added</div>
         </div>
       </div>
 

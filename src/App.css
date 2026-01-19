@@ -165,9 +165,6 @@ body {
   border-bottom: 1px solid #f3f4f6;
 }
 
-.event-item.unacknowledged {
-  background-color: #eff6ff;
-}
 
 .event-content {
   display: flex;
@@ -223,14 +220,6 @@ body {
   margin-top: 0.5rem;
 }
 
-.acknowledged-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #10b981;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
 
 /* Buttons */
 .btn {
@@ -246,14 +235,6 @@ body {
   transition: background-color 0.2s;
 }
 
-.btn-acknowledge {
-  background-color: #10b981;
-  color: #ffffff;
-}
-
-.btn-acknowledge:hover {
-  background-color: #059669;
-}
 
 .btn-note {
   background-color: #3b82f6;

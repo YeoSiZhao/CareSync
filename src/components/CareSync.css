@@ -303,8 +303,11 @@ body {
   padding: 0.9rem 1rem;
   background-color: #ffffff;
   border-radius: 0.9rem;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(217, 138, 68, 0.6);
+  background-color: #ffedd5;
 }
+
 
 .past-section {
   padding: 0.9rem 1.25rem 0.25rem;
@@ -349,14 +352,14 @@ body {
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.event-item.unacknowledged {
-  background-color: #eef5ff;
-  box-shadow: inset 0 0 0 1px rgba(95, 143, 215, 0.25);
-}
 
 .event-item:hover {
   background-color: #f5f7fb;
   transform: translateY(-1px);
+}
+
+.event-item.latest-item:hover {
+  background-color: #fdba74;
 }
 
 .event-content {
@@ -432,14 +435,6 @@ body {
   margin-top: 0.75rem;
 }
 
-.acknowledged-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #16a34a;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
 
 /* Buttons */
 .btn {
@@ -455,14 +450,6 @@ body {
   transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
-.btn-acknowledge {
-  background-color: #22c55e;
-  color: #ffffff;
-}
-
-.btn-acknowledge:hover {
-  background-color: #16a34a;
-}
 
 .btn-note {
   background-color: #64748b;

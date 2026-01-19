@@ -1,13 +1,11 @@
-import { Bell, Check, Plus, Brain } from 'lucide-react';
+import { Plus, Brain } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import './CareSync.css';
 
 const LiveDashboard = ({
   events,
   needConfig,
-  acknowledgeEvent,
   setShowNoteModal,
-  unacknowledgedCount,
   mlResults,
 }) => {
   const pageSize = 10;
@@ -50,21 +48,6 @@ const LiveDashboard = ({
 
   return (
     <div className="dashboard-content">
-      {unacknowledgedCount > 0 && (
-        <div className="alert-banner">
-          <div className="alert-content">
-            <Bell size={24} />
-            <div>
-              <h3 className="alert-title">
-                {unacknowledgedCount} Unacknowledged Request
-                {unacknowledgedCount > 1 ? 's' : ''}
-              </h3>
-              <p className="alert-subtitle">Please respond when possible</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="card">
         <div className="card-header">
           <h2>Recent Activity</h2>
@@ -75,11 +58,7 @@ const LiveDashboard = ({
           <div className="latest-section">
             <h3 className="latest-title">Latest Event</h3>
             {latestEvent ? (
-              <div
-                className={`event-item latest-item ${
-                  !latestEvent.acknowledged ? 'unacknowledged' : ''
-                }`}
-              >
+              <div className="event-item latest-item">
                 <div className="event-content">
                   <div className={`event-icon ${needConfig[latestEvent.type].color}`}>
                     {React.createElement(needConfig[latestEvent.type].icon, { size: 24 })}
@@ -105,29 +84,15 @@ const LiveDashboard = ({
                       </p>
                     )}
 
-                    {!latestEvent.acknowledged ? (
-                      <div className="event-actions">
-                        <button
-                          onClick={() => acknowledgeEvent(latestEvent.id)}
-                          className="btn btn-acknowledge"
-                        >
-                          <Check size={16} />
-                          Acknowledge
-                        </button>
-                        <button
-                          onClick={() => setShowNoteModal(latestEvent.id)}
-                          className="btn btn-note"
-                        >
-                          <Plus size={16} />
-                          Add Note
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="acknowledged-badge">
-                        <Check size={16} />
-                        <span>Acknowledged</span>
-                      </div>
-                    )}
+                    <div className="event-actions">
+                      <button
+                        onClick={() => setShowNoteModal(latestEvent.id)}
+                        className="btn btn-note"
+                      >
+                        <Plus size={16} />
+                        Add Note
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -145,10 +110,7 @@ const LiveDashboard = ({
             const config = needConfig[event.type];
             const Icon = config.icon;
             return (
-              <div
-                key={event.id}
-                className={`event-item ${!event.acknowledged ? 'unacknowledged' : ''}`}
-              >
+              <div key={event.id} className="event-item">
                 <div className="event-content">
                   <div className={`event-icon ${config.color}`}>
                     <Icon size={24} />
@@ -166,29 +128,15 @@ const LiveDashboard = ({
 
                     {event.note && <p className="event-note">"{event.note}"</p>}
 
-                    {!event.acknowledged ? (
-                      <div className="event-actions">
-                        <button
-                          onClick={() => acknowledgeEvent(event.id)}
-                          className="btn btn-acknowledge"
-                        >
-                          <Check size={16} />
-                          Acknowledge
-                        </button>
-                        <button
-                          onClick={() => setShowNoteModal(event.id)}
-                          className="btn btn-note"
-                        >
-                          <Plus size={16} />
-                          Add Note
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="acknowledged-badge">
-                        <Check size={16} />
-                        <span>Acknowledged</span>
-                      </div>
-                    )}
+                    <div className="event-actions">
+                      <button
+                        onClick={() => setShowNoteModal(event.id)}
+                        className="btn btn-note"
+                      >
+                        <Plus size={16} />
+                        Add Note
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

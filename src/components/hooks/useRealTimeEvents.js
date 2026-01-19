@@ -4,7 +4,7 @@ const API_BASE = 'http://localhost:8080';
 
 const useRealtimeEvents = () => {
   const [events, setEvents] = useState([]);
-  const [localUpdates, setLocalUpdates] = useState({}); // {id: {acknowledged: bool, note: string}}
+  const [localUpdates, setLocalUpdates] = useState({}); // {id: {note: string}}
   const localUpdatesRef = useRef(localUpdates);
 
   useEffect(() => {
@@ -18,7 +18,6 @@ const useRealtimeEvents = () => {
         const local = localUpdates[item.id] || {};
         return {
           ...item,
-          acknowledged: local.acknowledged || false,
           note: local.note || null,
         };
       })
@@ -34,7 +33,6 @@ const useRealtimeEvents = () => {
         const local = localUpdatesRef.current[item.id] || {};
         return {
           ...item,
-          acknowledged: local.acknowledged || false,
           note: local.note || null,
         };
       });

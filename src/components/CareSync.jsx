@@ -91,14 +91,12 @@ const CareSync = () => {
     music: { icon: Volume2, color: 'green', label: 'Music' }
   };
 
-  const acknowledgeEvent = id => setEvents(id, { acknowledged: true });
   const addNote = (id, note) => {
-    setEvents(id, { acknowledged: true, note });
+    setEvents(id, { note });
     setShowNoteModal(null);
     setNoteText('');
   };
 
-  const unacknowledgedCount = events.filter(e => !e.acknowledged).length;
   const last24Hours = events.filter(e => e.timestamp && (currentTime - e.timestamp) < 86400000);
   const typeCounts = last24Hours.reduce((acc, e) => {
     acc[e.type] = (acc[e.type] || 0) + 1;
@@ -153,9 +151,7 @@ const CareSync = () => {
           <LiveDashboard
             events={events}
             needConfig={needConfig}
-            acknowledgeEvent={acknowledgeEvent}
             setShowNoteModal={setShowNoteModal}
-            unacknowledgedCount={unacknowledgedCount}
             mlResults={mlResults}
           />
         )}
@@ -170,8 +166,8 @@ const CareSync = () => {
             <h3 className="modal-title">Add Response Note</h3>
             <textarea
               value={noteText}
-              onChange={e => setNoteText(e.target.value)}
               placeholder="e.g., 'Gave medication', 'Sat together for 15 minutes'..."
+              onChange={e => setNoteText(e.target.value)}
               className="modal-textarea"
             />
             <div className="modal-actions">
