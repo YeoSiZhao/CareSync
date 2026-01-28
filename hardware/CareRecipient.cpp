@@ -43,23 +43,65 @@ const int LAPTOP_PORT = 4200;
 // Buttons
 #define BUTTON_TIRED   16
 #define BUTTON_SPACE   4
-#define BUTTON_COMPANY 23
+#define BUTTON_COMPANY 13
 #define BUTTON_PAIN    17
-#define BUTTON_MUSIC   22
+#define BUTTON_MUSIC   14
 
 // RGB LED (COMMON CATHODE)
-#define LED_RED        21
-#define LED_GREEN      19
-#define LED_BLUE       18
+#define LED_RED        27
+#define LED_GREEN      33
+#define LED_BLUE       32
 
 // ======== STATE ========
-bool lastButtonTired = HIGH;
-bool lastButtonSpace = HIGH;
-bool lastButtonCompany = HIGH;
-bool lastButtonPain = HIGH;
-bool lastButtonMusic = HIGH;
 unsigned long lastHeartbeat = 0;
 bool isFlashing = false;
+
+// Interrupt flags and debounce
+volatile bool buttonPressed = false;
+volatile int lastButtonId = 0;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 200; // 200ms debounce
+
+// ISR handlers
+void IRAM_ATTR handleButtonTired() {
+  if (millis() - lastDebounceTime > debounceDelay) {
+    lastButtonId = 1;
+    buttonPressed = true;
+    lastDebounceTime = millis();
+  }
+}
+
+void IRAM_ATTR handleButtonSpace() {
+  if (millis() - lastDebounceTime > debounceDelay) {
+    lastButtonId = 2;
+    buttonPressed = true;
+    lastDebounceTime = millis();
+  }
+}
+
+void IRAM_ATTR handleButtonCompany() {
+  if (millis() - lastDebounceTime > debounceDelay) {
+    lastButtonId = 3;
+    buttonPressed = true;
+    lastDebounceTime = millis();
+  }
+}
+
+void IRAM_ATTR handleButtonPain() {
+  if (millis() - lastDebounceTime > debounceDelay) {
+    lastButtonId = 4;
+    buttonPressed = true;
+    lastDebounceTime = millis();
+  }
+}
+
+void IRAM_ATTR handleButtonMusic() {
+  if (millis() - lastDebounceTime > debounceDelay) {
+    lastButtonId = 5;
+    buttonPressed = true;
+    lastDebounceTime = millis();
+  }
+}
 
 // ======== SETUP ========
 void setup() {
@@ -77,6 +119,13 @@ void setup() {
   pinMode(LED_BLUE, OUTPUT);
   allOff();
 
+  // Attach interrupts (FALLING = button press on INPUT_PULLUP)
+  attachInterrupt(digitalPinToInterrupt(BUTTON_TIRED), handleButtonTired, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_SPACE), handleButtonSpace, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_COMPANY), handleButtonCompany, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PAIN), handleButtonPain, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_MUSIC), handleButtonMusic, FALLING);
+
   // Connect WiFi
   connectWiFi();
   udp.begin(LOCAL_UDP_PORT);
@@ -89,52 +138,34 @@ void setup() {
 
 // ======== MAIN LOOP ========
 void loop() {
-  if (isFlashing) {
-    delay(10);
-    return;
-  }
-
   // Send heartbeat every 30s
   if (millis() - lastHeartbeat > 30000) {
     sendHeartbeat();
     lastHeartbeat = millis();
   }
 
-  bool btnTired = digitalRead(BUTTON_TIRED);
-  bool btnSpace = digitalRead(BUTTON_SPACE);
-  bool btnCompany = digitalRead(BUTTON_COMPANY);
-  bool btnPain = digitalRead(BUTTON_PAIN);
-  bool btnMusic = digitalRead(BUTTON_MUSIC);
-
-  if (btnTired == LOW && lastButtonTired == HIGH) {
-    sendFeedback(1, "tired", true, false, false);
-    delay(50);
+  // Handle button press from interrupt
+  if (buttonPressed && !isFlashing) {
+    buttonPressed = false;
+    
+    switch(lastButtonId) {
+      case 1:
+        sendFeedback(1, "tired", true, false, false);
+        break;
+      case 2:
+        sendFeedback(2, "space", true, true, false);
+        break;
+      case 3:
+        sendFeedback(3, "company", false, true, false);
+        break;
+      case 4:
+        sendFeedback(4, "pain", false, false, true);
+        break;
+      case 5:
+        sendFeedback(5, "music", false, true, true);
+        break;
+    }
   }
-  lastButtonTired = btnTired;
-
-  if (btnSpace == LOW && lastButtonSpace == HIGH) {
-    sendFeedback(2, "space", true, true, false);
-    delay(50);
-  }
-  lastButtonSpace = btnSpace;
-
-  if (btnCompany == LOW && lastButtonCompany == HIGH) {
-    sendFeedback(3, "company", false, true, false);
-    delay(50);
-  }
-  lastButtonCompany = btnCompany;
-
-  if (btnPain == LOW && lastButtonPain == HIGH) {
-    sendFeedback(4, "pain", false, false, true);
-    delay(50);
-  }
-  lastButtonPain = btnPain;
-
-  if (btnMusic == LOW && lastButtonMusic == HIGH) {
-    sendFeedback(5, "music", false, true, true);
-    delay(50);
-  }
-  lastButtonMusic = btnMusic;
 
   delay(10);
 }
@@ -208,6 +239,8 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   char deviceBMessage[32];
   sprintf(deviceBMessage, "%d:%s", id, color);
 
+  // Print and show color IMMEDIATELY
+  Serial.printf("[Button] %s → sending to Device B + Backend\n", label);
   flashColor(r, g, b);
 
   // Send UDP → Device B
@@ -223,7 +256,7 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   // Send HTTP → Backend
   sendToBackend(label);
 
-  Serial.printf("[Button] %s → sent to Device B + Backend\n", label);
+  Serial.printf("[Packet] Sent successfully\n");
   isFlashing = false;
 }
 
