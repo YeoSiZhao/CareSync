@@ -17,6 +17,7 @@ const char* BACKEND_BASE = "http://192.168.142.184:8080";
 const char* HEARTBEAT_URL = "/api/heartbeat";
 const char* DEVICE_ID = "Caregiver";
 
+
 // RGB LED PINS (COMMON ANODE)
 const int RED_PIN = 23;
 const int GREEN_PIN = 22;
@@ -30,6 +31,9 @@ const int UDP_PORT = 4210;
 const int FLASH_COUNT = 3;
 const int FLASH_ON_MS = 200;
 const int FLASH_OFF_MS = 200;
+
+// Buzzer
+const int BUZZER_PIN = 18;
 
 // TASK/QUEUE
 QueueHandle_t msgQueue;
@@ -55,6 +59,7 @@ void allOff() {
   digitalWrite(RED_PIN, LOW);
   digitalWrite(GREEN_PIN, LOW);
   digitalWrite(BLUE_PIN, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
 }
 
 void flashColor(bool r, bool g, bool b) {
@@ -63,6 +68,7 @@ void flashColor(bool r, bool g, bool b) {
     if (r) digitalWrite(RED_PIN, HIGH);
     if (g) digitalWrite(GREEN_PIN, HIGH);
     if (b) digitalWrite(BLUE_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
     delay(FLASH_ON_MS);
 
     allOff();
@@ -86,7 +92,6 @@ void udpReceiverTask(void *parameter) {
       int len = udp.read(buf, sizeof(buf) - 1);
       if (len > 0) {
         buf[len] = '\0';
-
         Serial.println("\n========================================");
         Serial.println("FEEDBACK RECEIVED FROM ELDERLY");
         Serial.println("========================================");
@@ -151,15 +156,18 @@ void setup() {
   digitalWrite(RED_PIN, LOW);
   digitalWrite(GREEN_PIN, LOW);
   digitalWrite(BLUE_PIN, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
 
   pinMode(RED_PIN, OUTPUT);
   pinMode(GREEN_PIN, OUTPUT);
   pinMode(BLUE_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
 
   // Enable internal pulldowns (kills leakage completely)
   gpio_pulldown_en((gpio_num_t)RED_PIN);
   gpio_pulldown_en((gpio_num_t)GREEN_PIN);
   gpio_pulldown_en((gpio_num_t)BLUE_PIN);
+  gpio_pulldown_en((gpio_num_t)BUZZER_PIN);
 
   allOff();
 
