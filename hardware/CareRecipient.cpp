@@ -2,7 +2,6 @@
  * Sends feedback to:
  *  1. Device B (UDP) – instant caregiver notification
  *  2. Backend API (HTTP POST) – logs to Firestore
- *  3. Laptop UDP (optional local debugging)
  */
 
 #include <WiFi.h>
@@ -37,15 +36,12 @@ const int LOCAL_UDP_PORT = 4210;
 IPAddress DEVICE_B_IP(192, 168, 142, 168);
 const int DEVICE_B_PORT = 4210;
 
-IPAddress LAPTOP_IP(192, 168, 142, 112);
-const int LAPTOP_PORT = 4200;
-
 // Buttons
 #define BUTTON_TIRED   16
 #define BUTTON_SPACE   4
 #define BUTTON_COMPANY 13
 #define BUTTON_PAIN    17
-#define BUTTON_MUSIC   14
+#define BUTTON_MUSIC   26
 
 // RGB LED (COMMON CATHODE)
 #define LED_RED        27
@@ -56,50 +52,55 @@ const int LAPTOP_PORT = 4200;
 unsigned long lastHeartbeat = 0;
 bool isFlashing = false;
 
-// Interrupt flags and debounce
+// Interrupt flags and debounce - IMPROVED
 volatile bool buttonPressed = false;
 volatile int lastButtonId = 0;
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 200; // 200ms debounce
+volatile unsigned long lastDebounceTime = 0;  // Made volatile for ISR safety
+const unsigned long debounceDelay = 150; // 100ms for faster response
 
-// ISR handlers
+// ISR handlers - IMPROVED
 void IRAM_ATTR handleButtonTired() {
-  if (millis() - lastDebounceTime > debounceDelay) {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
     lastButtonId = 1;
     buttonPressed = true;
-    lastDebounceTime = millis();
+    lastDebounceTime = currentTime;
   }
 }
 
 void IRAM_ATTR handleButtonSpace() {
-  if (millis() - lastDebounceTime > debounceDelay) {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
     lastButtonId = 2;
     buttonPressed = true;
-    lastDebounceTime = millis();
+    lastDebounceTime = currentTime;
   }
 }
 
 void IRAM_ATTR handleButtonCompany() {
-  if (millis() - lastDebounceTime > debounceDelay) {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
     lastButtonId = 3;
     buttonPressed = true;
-    lastDebounceTime = millis();
+    lastDebounceTime = currentTime;
   }
 }
 
 void IRAM_ATTR handleButtonPain() {
-  if (millis() - lastDebounceTime > debounceDelay) {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
     lastButtonId = 4;
     buttonPressed = true;
-    lastDebounceTime = millis();
+    lastDebounceTime = currentTime;
   }
 }
 
 void IRAM_ATTR handleButtonMusic() {
-  if (millis() - lastDebounceTime > debounceDelay) {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
     lastButtonId = 5;
     buttonPressed = true;
-    lastDebounceTime = millis();
+    lastDebounceTime = currentTime;
   }
 }
 
@@ -222,8 +223,6 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   isFlashing = true;
 
   // Message for UDP (Device B expects "BUTTON_ID:COLOR")
-  char message[50];
-  sprintf(message, "%d:%s", id, label);
   const char* color = "UNKNOWN";
   if (id == 1) {
     color = "RED";
@@ -239,24 +238,21 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   char deviceBMessage[32];
   sprintf(deviceBMessage, "%d:%s", id, color);
 
-  // Print and show color IMMEDIATELY
-  Serial.printf("[Button] %s → sending to Device B + Backend\n", label);
-  flashColor(r, g, b);
+  // Print immediately
+  Serial.printf("[Button] %s pressed\n", label);
 
-  // Send UDP → Device B
+  // Send UDP → Device B (FIRST - most critical for instant notification)
   udp.beginPacket(DEVICE_B_IP, DEVICE_B_PORT);
   udp.print(deviceBMessage);
   udp.endPacket();
 
-  // Send UDP → Laptop (debug)
-  udp.beginPacket(LAPTOP_IP, LAPTOP_PORT);
-  udp.print(message);
-  udp.endPacket();
+  // Flash color AFTER sending (visual confirmation)
+  flashColor(r, g, b);
 
-  // Send HTTP → Backend
+  // Send HTTP → Backend (slowest, done last)
   sendToBackend(label);
 
-  Serial.printf("[Packet] Sent successfully\n");
+  Serial.printf("[Sent] %s to Device B\n", color);
   isFlashing = false;
 }
 
