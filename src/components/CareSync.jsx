@@ -7,6 +7,7 @@ import Logs from './Logs';
 import './CareSync.css';
 
 const CareSync = () => {
+  const API_BASE = 'http://localhost:8080';
   const [activeTab, setActiveTab] = useState('live');
   const { events, setEvents } = useRealtimeEvents();
   const [showNoteModal, setShowNoteModal] = useState(null);
@@ -16,6 +17,10 @@ const CareSync = () => {
   const [mlResults, setMlResults] = useState(null);
   const [mlLoading, setMlLoading] = useState(false);
   const [lastTrained, setLastTrained] = useState(null);
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState('');
+  const [telegramError, setTelegramError] = useState('');
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -28,7 +33,7 @@ const CareSync = () => {
 
     const fetchDevices = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/devices');
+        const response = await fetch(`${API_BASE}/api/devices`);
         const data = await response.json();
         if (!isMounted) return;
         setDevices(data);
@@ -39,7 +44,7 @@ const CareSync = () => {
 
     fetchDevices();
 
-    eventSource = new EventSource('http://localhost:8080/api/devices/stream');
+    eventSource = new EventSource(`${API_BASE}/api/devices/stream`);
     eventSource.onmessage = (event) => {
       if (!event.data) return;
       const payload = JSON.parse(event.data);
@@ -70,7 +75,7 @@ const CareSync = () => {
   const runMLPipeline = async () => {
     setMlLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/ml/train', {
+      const response = await fetch(`${API_BASE}/api/ml/train`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -95,6 +100,49 @@ const CareSync = () => {
     setEvents(id, { note });
     setShowNoteModal(null);
     setNoteText('');
+  };
+
+  const linkTelegram = async () => {
+    const username = telegramUsername.trim();
+    setTelegramStatus('');
+    setTelegramError('');
+    if (!username) {
+      setTelegramError('Enter your Telegram username first.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/telegram/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to link Telegram.');
+      }
+      setTelegramLinked(true);
+      setTelegramStatus('Telegram linked. Alerts will send here.');
+    } catch (error) {
+      setTelegramError(error.message || 'Failed to link Telegram.');
+    }
+  };
+
+  const testTelegram = async () => {
+    setTelegramStatus('');
+    setTelegramError('');
+    try {
+      const response = await fetch(`${API_BASE}/api/telegram/test`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to send test message.');
+      }
+      setTelegramStatus('Test sent. Check Telegram.');
+    } catch (error) {
+      setTelegramError(error.message || 'Failed to send test message.');
+    }
   };
 
   const last24Hours = events.filter(e => e.timestamp && (currentTime - e.timestamp) < 86400000);
@@ -129,6 +177,34 @@ const CareSync = () => {
             <div className={`connection-status ${isDeviceOnline('Caregiver') ? 'online' : 'offline'}`}>
               <div className="status-dot"></div>
               <span>Caregiver: {isDeviceOnline('Caregiver') ? 'Connected' : 'Offline'}</span>
+            </div>
+            <div className="telegram-card">
+              <span className="telegram-title">Telegram Alerts</span>
+              <div className="telegram-row">
+                <input
+                  value={telegramUsername}
+                  onChange={(e) => setTelegramUsername(e.target.value)}
+                  placeholder="@username"
+                  className="telegram-input"
+                />
+                <button
+                  onClick={linkTelegram}
+                  className="btn btn-primary btn-small"
+                >
+                  {telegramLinked ? 'Linked' : 'Link'}
+                </button>
+                <button
+                  onClick={testTelegram}
+                  className="btn btn-secondary btn-small"
+                >
+                  Test
+                </button>
+              </div>
+              <div className="telegram-hint">
+                Open your bot in Telegram and send <strong>/start</strong> before linking.
+              </div>
+              {telegramStatus && <div className="telegram-status">{telegramStatus}</div>}
+              {telegramError && <div className="telegram-error">{telegramError}</div>}
             </div>
           </div>
         </div>

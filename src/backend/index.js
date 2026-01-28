@@ -6,9 +6,12 @@ import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 // ===== Firebase Admin Initialization =====
 const serviceAccount = JSON.parse(
@@ -22,6 +25,71 @@ initializeApp({
 const db = getFirestore();
 const sseClients = new Set();
 const deviceClients = new Set();
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_API_BASE = "https://api.telegram.org";
+
+const normalizeTelegramUsername = (username = "") =>
+  username.trim().replace(/^@/, "").toLowerCase();
+
+const findTelegramChatId = async (username) => {
+  if (!TELEGRAM_BOT_TOKEN) {
+    throw new Error("Telegram bot token missing.");
+  }
+  const response = await fetch(
+    `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/getUpdates`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to reach Telegram.");
+  }
+  const data = await response.json();
+  if (!data.ok) {
+    throw new Error(data.description || "Telegram API error.");
+  }
+  const updates = Array.isArray(data.result) ? data.result : [];
+  const match = updates
+    .map((update) => update.message || update.edited_message)
+    .filter(Boolean)
+    .reverse()
+    .find((message) => {
+      const fromUser = normalizeTelegramUsername(message.from?.username || "");
+      const chatUser = normalizeTelegramUsername(message.chat?.username || "");
+      return fromUser === username || chatUser === username;
+    });
+
+  if (!match) return null;
+  return match.chat?.id || null;
+};
+
+const sendTelegramToAll = async (text) => {
+  if (!TELEGRAM_BOT_TOKEN) return;
+  const snapshot = await db.collection("telegram_subscriptions").get();
+  if (snapshot.empty) return;
+
+  await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const data = doc.data();
+      const chatId = data?.chat_id;
+      if (!chatId) return;
+      try {
+        await fetch(
+          `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text }),
+          }
+        );
+      } catch (error) {
+        console.error("Telegram send failed:", error?.message || error);
+      }
+    })
+  );
+};
+
+const ALERT_WINDOW_MS = 60 * 1000;
+const ALERT_THRESHOLD = 3;
+let recentEventTimestamps = [];
 
 // ===== Express Setup =====
 const app = express();
@@ -62,6 +130,20 @@ app.post("/api/event", async (req, res) => {
     };
     for (const client of sseClients) {
       client.write(`data: ${JSON.stringify(payload)}\n\n`);
+    }
+
+    const now = Date.now();
+    recentEventTimestamps = recentEventTimestamps.filter(
+      (ts) => now - ts <= ALERT_WINDOW_MS
+    );
+    recentEventTimestamps.push(now);
+    const windowCount = recentEventTimestamps.length;
+
+    if (windowCount > ALERT_THRESHOLD) {
+      sendTelegramToAll(
+        `🚨 Multiple requests detected in the last minute. Latest: “${label}”. Please review activity immediately.`
+      ).catch((error) => console.error("Telegram error:", error?.message || error));
+      recentEventTimestamps = [];
     }
 
     res.status(200).send({ message: "Event logged" });
@@ -178,6 +260,51 @@ app.get("/api/devices/stream", (req, res) => {
     clearInterval(heartbeat);
     deviceClients.delete(res);
   });
+});
+
+// ===== Telegram Notification Endpoints =====
+app.post("/api/telegram/subscribe", async (req, res) => {
+  try {
+    const rawUsername = req.body?.username || "";
+    const username = normalizeTelegramUsername(rawUsername);
+    if (!username) {
+      res.status(400).json({ error: "Missing username" });
+      return;
+    }
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(500).json({ error: "Telegram bot not configured" });
+      return;
+    }
+
+    const chatId = await findTelegramChatId(username);
+    if (!chatId) {
+      res.status(404).json({
+        error:
+          "User not found. Open the bot in Telegram and send /start, then try again.",
+      });
+      return;
+    }
+
+    await db
+      .collection("telegram_subscriptions")
+      .doc(username)
+      .set({ username, chat_id: chatId, updated_at: Timestamp.now() }, { merge: true });
+
+    res.status(201).json({ message: "Telegram linked", username });
+  } catch (err) {
+    console.error("Telegram subscribe error:", err);
+    res.status(500).json({ error: "Failed to link Telegram" });
+  }
+});
+
+app.post("/api/telegram/test", async (req, res) => {
+  try {
+    await sendTelegramToAll("CareSync test notification.");
+    res.json({ message: "Telegram test sent" });
+  } catch (err) {
+    console.error("Telegram test error:", err);
+    res.status(500).json({ error: "Failed to send Telegram test" });
+  }
 });
 
 // ===== POST /api/ml/train =====

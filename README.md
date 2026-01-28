@@ -132,5 +132,21 @@ the current score.
 - ML training failed: ensure Python, numpy, and tensorflow are installed and
   there are enough events for training.
 
+## Telegram Alerts
+
+CareSync can send alerts to Telegram when a new event arrives.
+
+1) Create a bot via BotFather and get your token.
+2) Create `src/backend/.env` from `src/backend/.env.example` and set:
+   `TELEGRAM_BOT_TOKEN=your_token_here`
+3) Start the backend from `src/backend`:
+
+```bash
+node index.js
+```
+
+4) Open your bot in Telegram and send `/start`.
+5) In the web app, enter your Telegram username and click **Link**, then **Test**.
+
 ### See More
 Slides: https://tinyurl.com/CareSyncH4G
