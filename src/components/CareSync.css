@@ -117,13 +117,8 @@ body {
 }
 
 .telegram-card {
-  width: 100%;
-  border-top: 1px solid var(--line-100);
-  padding-top: 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  text-align: right;
 }
 
 .telegram-title {
@@ -134,34 +129,61 @@ body {
   font-weight: 700;
 }
 
+.telegram-card-header {
+  padding: 1rem 1.5rem 0;
+}
+
+.telegram-card-header h2 {
+  font-weight: 600;
+  font-family: var(--font-heading);
+  color: var(--ink-900);
+  font-size: 1rem;
+}
+
+.telegram-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-400);
+}
+
+.telegram-card-body {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .telegram-row {
   display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
+  gap: 0.5rem;
+  justify-content: flex-start;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .telegram-input {
-  min-width: 140px;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.4rem;
+  min-width: 180px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
   border: 1px solid #d1d5db;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   text-align: left;
+  background-color: #ffffff;
+  color: var(--ink-900);
 }
 
 .telegram-hint {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--ink-400);
 }
 
 .telegram-status {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #16a34a;
 }
 
 .telegram-error {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #dc2626;
 }
 
@@ -538,6 +560,15 @@ body {
 
 .btn-secondary:hover {
   background-color: #e2e8f0;
+}
+
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.telegram-row .btn {
+  flex: 0 0 auto;
 }
 
 /* Analytics */

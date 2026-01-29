@@ -66,6 +66,21 @@ const sendTelegramToAll = async (text) => {
   const snapshot = await db.collection("telegram_subscriptions").get();
   if (snapshot.empty) return;
 
+  console.log("[telegram] sending alert", {
+    text,
+    subscribers: snapshot.size,
+  });
+
+  try {
+    await db.collection("telegram_alerts").add({
+      text,
+      subscriber_count: snapshot.size,
+      sent_at: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error("Telegram alert log failed:", error?.message || error);
+  }
+
   await Promise.all(
     snapshot.docs.map(async (doc) => {
       const data = doc.data();
@@ -304,6 +319,56 @@ app.post("/api/telegram/test", async (req, res) => {
   } catch (err) {
     console.error("Telegram test error:", err);
     res.status(500).json({ error: "Failed to send Telegram test" });
+  }
+});
+
+app.post("/api/telegram/unsubscribe", async (req, res) => {
+  try {
+    const rawUsername = req.body?.username || "";
+    const username = normalizeTelegramUsername(rawUsername);
+    if (!username) {
+      res.status(400).json({ error: "Missing username" });
+      return;
+    }
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(500).json({ error: "Telegram bot not configured" });
+      return;
+    }
+
+    await db.collection("telegram_subscriptions").doc(username).delete();
+    res.status(200).json({ message: "Telegram unlinked", username });
+  } catch (err) {
+    console.error("Telegram unsubscribe error:", err);
+    res.status(500).json({ error: "Failed to unlink Telegram" });
+  }
+});
+
+app.get("/api/telegram/alerts", async (req, res) => {
+  try {
+    const snapshot = await db
+      .collection("telegram_alerts")
+      .orderBy("sent_at", "desc")
+      .limit(50)
+      .get();
+
+    const alerts = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const sentAt =
+        data.sent_at && typeof data.sent_at.toDate === "function"
+          ? data.sent_at.toDate()
+          : new Date(data.sent_at);
+      return {
+        id: doc.id,
+        text: data.text || "",
+        subscriber_count: data.subscriber_count || 0,
+        sent_at: sentAt.toISOString(),
+      };
+    });
+
+    res.status(200).json(alerts);
+  } catch (err) {
+    console.error("Telegram alerts fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch Telegram alerts" });
   }
 });
 

@@ -1,8 +1,16 @@
-import React, { useMemo } from 'react';
-import { CalendarDays, CalendarRange } from 'lucide-react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { CalendarDays, CalendarRange, Bell } from 'lucide-react';
 import './CareSync.css';
 
 const Logs = ({ events, needConfig }) => {
+  const API_BASE = 'http://localhost:8080';
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState('');
+  const [telegramError, setTelegramError] = useState('');
+  const [telegramAlerts, setTelegramAlerts] = useState([]);
+  const [telegramLoading, setTelegramLoading] = useState(true);
+  const [telegramAlertsError, setTelegramAlertsError] = useState('');
   const { dailyLogs, weeklyLogs, busiestDay, topActivity } = useMemo(() => {
     const dayMap = new Map();
     const weekMap = new Map();
@@ -76,11 +84,119 @@ const Logs = ({ events, needConfig }) => {
     };
   }, [events]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAlerts = async () => {
+      setTelegramLoading(true);
+      setTelegramAlertsError('');
+      try {
+        const response = await fetch(`${API_BASE}/api/telegram/alerts`);
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err?.error || 'Failed to fetch Telegram alerts.');
+        }
+        const data = await response.json();
+        if (!isMounted) return;
+        setTelegramAlerts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (!isMounted) return;
+        setTelegramAlertsError(error.message || 'Failed to fetch Telegram alerts.');
+      } finally {
+        if (isMounted) setTelegramLoading(false);
+      }
+    };
+
+    fetchAlerts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const linkTelegram = async () => {
+    const username = telegramUsername.trim();
+    setTelegramStatus('');
+    setTelegramError('');
+    if (!username) {
+      setTelegramError('Enter your Telegram username first.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/telegram/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to link Telegram.');
+      }
+      setTelegramLinked(true);
+      setTelegramStatus('Telegram linked. Alerts will send here.');
+    } catch (error) {
+      setTelegramError(error.message || 'Failed to link Telegram.');
+    }
+  };
+
+  const unlinkTelegram = async () => {
+    const username = telegramUsername.trim();
+    setTelegramStatus('');
+    setTelegramError('');
+    if (!username) {
+      setTelegramError('Enter your Telegram username first.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/telegram/unsubscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to unlink Telegram.');
+      }
+      setTelegramLinked(false);
+      setTelegramStatus('Telegram unlinked.');
+    } catch (error) {
+      setTelegramError(error.message || 'Failed to unlink Telegram.');
+    }
+  };
+
+  const testTelegram = async () => {
+    setTelegramStatus('');
+    setTelegramError('');
+    try {
+      const response = await fetch(`${API_BASE}/api/telegram/test`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to send test message.');
+      }
+      setTelegramStatus('Test sent. Check Telegram.');
+    } catch (error) {
+      setTelegramError(error.message || 'Failed to send test message.');
+    }
+  };
+
   const formatDate = (dateKey) =>
     new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+    });
+
+  const formatDateTime = (dateTime) =>
+    new Date(dateTime).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     });
 
   const formatWeek = (weekKey) => {
@@ -129,6 +245,80 @@ const Logs = ({ events, needConfig }) => {
               </span>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card telegram-card">
+        <div className="telegram-card-header">
+          <div>
+            <h2>Telegram Alerts</h2>
+            <p className="telegram-subtitle">
+              Link a username to receive urgent care alerts.
+            </p>
+          </div>
+        </div>
+        <div className="telegram-card-body">
+          <div className="telegram-row">
+            <input
+              value={telegramUsername}
+              onChange={(e) => setTelegramUsername(e.target.value)}
+              placeholder="@username"
+              className="telegram-input"
+            />
+            <button
+              onClick={linkTelegram}
+              className="btn btn-primary btn-small"
+              disabled={!telegramUsername.trim()}
+            >
+              {telegramLinked ? 'Linked' : 'Link'}
+            </button>
+            <button
+              onClick={unlinkTelegram}
+              className="btn btn-secondary btn-small"
+              disabled={!telegramUsername.trim()}
+            >
+              Unlink
+            </button>
+            <button
+              onClick={testTelegram}
+              className="btn btn-secondary btn-small"
+            >
+              Test
+            </button>
+          </div>
+          <div className="telegram-hint">
+            Open your bot in Telegram and send <strong>/start</strong> before linking.
+          </div>
+          {telegramStatus && <div className="telegram-status">{telegramStatus}</div>}
+          {telegramError && <div className="telegram-error">{telegramError}</div>}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 className="analytics-title">
+          <Bell size={20} /> Telegram Alerts
+        </h2>
+        <div className="log-list">
+          {telegramLoading && <div className="empty-state">Loading alerts...</div>}
+          {!telegramLoading && telegramAlertsError && (
+            <div className="empty-state">{telegramAlertsError}</div>
+          )}
+          {!telegramLoading && !telegramAlertsError && telegramAlerts.length === 0 && (
+            <div className="empty-state">No Telegram alerts yet.</div>
+          )}
+          {!telegramLoading &&
+            !telegramAlertsError &&
+            telegramAlerts.map((alert) => (
+              <div key={alert.id} className="log-item log-item-red">
+                <div>
+                  <div className="log-date">{formatDateTime(alert.sent_at)}</div>
+                  <div className="log-meta">Alert: {alert.text || '—'}</div>
+                </div>
+                <div className="log-count">
+                  {alert.subscriber_count} sent
+                </div>
+              </div>
+            ))}
         </div>
       </div>
 
