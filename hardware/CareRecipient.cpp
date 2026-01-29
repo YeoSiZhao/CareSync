@@ -2,7 +2,6 @@
  * Sends feedback to:
  *  1. Device B (UDP) – instant caregiver notification
  *  2. Backend API (HTTP POST) – logs to Firestore
- *  3. Laptop UDP (optional local debugging)
  */
 
 #include <WiFi.h>
@@ -37,29 +36,73 @@ const int LOCAL_UDP_PORT = 4210;
 IPAddress DEVICE_B_IP(192, 168, 142, 168);
 const int DEVICE_B_PORT = 4210;
 
-IPAddress LAPTOP_IP(192, 168, 142, 112);
-const int LAPTOP_PORT = 4200;
-
 // Buttons
 #define BUTTON_TIRED   16
 #define BUTTON_SPACE   4
-#define BUTTON_COMPANY 23
+#define BUTTON_COMPANY 13
 #define BUTTON_PAIN    17
-#define BUTTON_MUSIC   22
+#define BUTTON_MUSIC   26
 
 // RGB LED (COMMON CATHODE)
-#define LED_RED        21
-#define LED_GREEN      19
-#define LED_BLUE       18
+#define LED_RED        27
+#define LED_GREEN      33
+#define LED_BLUE       32
 
 // ======== STATE ========
-bool lastButtonTired = HIGH;
-bool lastButtonSpace = HIGH;
-bool lastButtonCompany = HIGH;
-bool lastButtonPain = HIGH;
-bool lastButtonMusic = HIGH;
 unsigned long lastHeartbeat = 0;
 bool isFlashing = false;
+
+// Interrupt flags and debounce - IMPROVED
+volatile bool buttonPressed = false;
+volatile int lastButtonId = 0;
+volatile unsigned long lastDebounceTime = 0;  // Made volatile for ISR safety
+const unsigned long debounceDelay = 150; // 100ms for faster response
+
+// ISR handlers - IMPROVED
+void IRAM_ATTR handleButtonTired() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
+    lastButtonId = 1;
+    buttonPressed = true;
+    lastDebounceTime = currentTime;
+  }
+}
+
+void IRAM_ATTR handleButtonSpace() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
+    lastButtonId = 2;
+    buttonPressed = true;
+    lastDebounceTime = currentTime;
+  }
+}
+
+void IRAM_ATTR handleButtonCompany() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
+    lastButtonId = 3;
+    buttonPressed = true;
+    lastDebounceTime = currentTime;
+  }
+}
+
+void IRAM_ATTR handleButtonPain() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
+    lastButtonId = 4;
+    buttonPressed = true;
+    lastDebounceTime = currentTime;
+  }
+}
+
+void IRAM_ATTR handleButtonMusic() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDebounceTime > debounceDelay) {
+    lastButtonId = 5;
+    buttonPressed = true;
+    lastDebounceTime = currentTime;
+  }
+}
 
 // ======== SETUP ========
 void setup() {
@@ -77,6 +120,13 @@ void setup() {
   pinMode(LED_BLUE, OUTPUT);
   allOff();
 
+  // Attach interrupts (FALLING = button press on INPUT_PULLUP)
+  attachInterrupt(digitalPinToInterrupt(BUTTON_TIRED), handleButtonTired, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_SPACE), handleButtonSpace, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_COMPANY), handleButtonCompany, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PAIN), handleButtonPain, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_MUSIC), handleButtonMusic, FALLING);
+
   // Connect WiFi
   connectWiFi();
   udp.begin(LOCAL_UDP_PORT);
@@ -89,52 +139,34 @@ void setup() {
 
 // ======== MAIN LOOP ========
 void loop() {
-  if (isFlashing) {
-    delay(10);
-    return;
-  }
-
   // Send heartbeat every 30s
   if (millis() - lastHeartbeat > 30000) {
     sendHeartbeat();
     lastHeartbeat = millis();
   }
 
-  bool btnTired = digitalRead(BUTTON_TIRED);
-  bool btnSpace = digitalRead(BUTTON_SPACE);
-  bool btnCompany = digitalRead(BUTTON_COMPANY);
-  bool btnPain = digitalRead(BUTTON_PAIN);
-  bool btnMusic = digitalRead(BUTTON_MUSIC);
-
-  if (btnTired == LOW && lastButtonTired == HIGH) {
-    sendFeedback(1, "tired", true, false, false);
-    delay(50);
+  // Handle button press from interrupt
+  if (buttonPressed && !isFlashing) {
+    buttonPressed = false;
+    
+    switch(lastButtonId) {
+      case 1:
+        sendFeedback(1, "tired", true, false, false);
+        break;
+      case 2:
+        sendFeedback(2, "space", true, true, false);
+        break;
+      case 3:
+        sendFeedback(3, "company", false, true, false);
+        break;
+      case 4:
+        sendFeedback(4, "pain", false, false, true);
+        break;
+      case 5:
+        sendFeedback(5, "music", false, true, true);
+        break;
+    }
   }
-  lastButtonTired = btnTired;
-
-  if (btnSpace == LOW && lastButtonSpace == HIGH) {
-    sendFeedback(2, "space", true, true, false);
-    delay(50);
-  }
-  lastButtonSpace = btnSpace;
-
-  if (btnCompany == LOW && lastButtonCompany == HIGH) {
-    sendFeedback(3, "company", false, true, false);
-    delay(50);
-  }
-  lastButtonCompany = btnCompany;
-
-  if (btnPain == LOW && lastButtonPain == HIGH) {
-    sendFeedback(4, "pain", false, false, true);
-    delay(50);
-  }
-  lastButtonPain = btnPain;
-
-  if (btnMusic == LOW && lastButtonMusic == HIGH) {
-    sendFeedback(5, "music", false, true, true);
-    delay(50);
-  }
-  lastButtonMusic = btnMusic;
 
   delay(10);
 }
@@ -191,8 +223,6 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   isFlashing = true;
 
   // Message for UDP (Device B expects "BUTTON_ID:COLOR")
-  char message[50];
-  sprintf(message, "%d:%s", id, label);
   const char* color = "UNKNOWN";
   if (id == 1) {
     color = "RED";
@@ -208,22 +238,21 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   char deviceBMessage[32];
   sprintf(deviceBMessage, "%d:%s", id, color);
 
-  flashColor(r, g, b);
+  // Print immediately
+  Serial.printf("[Button] %s pressed\n", label);
 
-  // Send UDP → Device B
+  // Send UDP → Device B (FIRST - most critical for instant notification)
   udp.beginPacket(DEVICE_B_IP, DEVICE_B_PORT);
   udp.print(deviceBMessage);
   udp.endPacket();
 
-  // Send UDP → Laptop (debug)
-  udp.beginPacket(LAPTOP_IP, LAPTOP_PORT);
-  udp.print(message);
-  udp.endPacket();
+  // Flash color AFTER sending (visual confirmation)
+  flashColor(r, g, b);
 
-  // Send HTTP → Backend
+  // Send HTTP → Backend (slowest, done last)
   sendToBackend(label);
 
-  Serial.printf("[Button] %s → sent to Device B + Backend\n", label);
+  Serial.printf("[Sent] %s to Device B\n", color);
   isFlashing = false;
 }
 
