@@ -4,9 +4,38 @@ import './CareSync.css';
 
 const Logs = ({ events, needConfig }) => {
   const API_BASE = 'http://localhost:8080';
-  const [telegramUsername, setTelegramUsername] = useState('');
-  const [telegramLinked, setTelegramLinked] = useState(false);
-  const [telegramStatus, setTelegramStatus] = useState('');
+  const [telegramUsername, setTelegramUsername] = useState(() => {
+    try {
+      const stored = localStorage.getItem('caresync.telegram');
+      if (!stored) return '';
+      const parsed = JSON.parse(stored);
+      return typeof parsed?.username === 'string' ? parsed.username : '';
+    } catch {
+      return '';
+    }
+  });
+  const [telegramLinked, setTelegramLinked] = useState(() => {
+    try {
+      const stored = localStorage.getItem('caresync.telegram');
+      if (!stored) return false;
+      const parsed = JSON.parse(stored);
+      return typeof parsed?.linked === 'boolean' ? parsed.linked : false;
+    } catch {
+      return false;
+    }
+  });
+  const [telegramStatus, setTelegramStatus] = useState(() => {
+    try {
+      const stored = localStorage.getItem('caresync.telegram');
+      if (!stored) return '';
+      const parsed = JSON.parse(stored);
+      if (typeof parsed?.status === 'string') return parsed.status;
+      if (parsed?.linked) return 'Telegram linked. Alerts will send here.';
+      return '';
+    } catch {
+      return '';
+    }
+  });
   const [telegramError, setTelegramError] = useState('');
   const [telegramAlerts, setTelegramAlerts] = useState([]);
   const [telegramLoading, setTelegramLoading] = useState(true);
@@ -113,6 +142,21 @@ const Logs = ({ events, needConfig }) => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'caresync.telegram',
+        JSON.stringify({
+          username: telegramUsername,
+          linked: telegramLinked,
+          status: telegramStatus,
+        })
+      );
+    } catch {
+      // Ignore storage errors (e.g., storage disabled).
+    }
+  }, [telegramUsername, telegramLinked, telegramStatus]);
 
   const linkTelegram = async () => {
     const username = telegramUsername.trim();
@@ -291,34 +335,6 @@ const Logs = ({ events, needConfig }) => {
           </div>
           {telegramStatus && <div className="telegram-status">{telegramStatus}</div>}
           {telegramError && <div className="telegram-error">{telegramError}</div>}
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 className="analytics-title">
-          <Bell size={20} /> Telegram Alerts
-        </h2>
-        <div className="log-list">
-          {telegramLoading && <div className="empty-state">Loading alerts...</div>}
-          {!telegramLoading && telegramAlertsError && (
-            <div className="empty-state">{telegramAlertsError}</div>
-          )}
-          {!telegramLoading && !telegramAlertsError && telegramAlerts.length === 0 && (
-            <div className="empty-state">No Telegram alerts yet.</div>
-          )}
-          {!telegramLoading &&
-            !telegramAlertsError &&
-            telegramAlerts.map((alert) => (
-              <div key={alert.id} className="log-item log-item-red">
-                <div>
-                  <div className="log-date">{formatDateTime(alert.sent_at)}</div>
-                  <div className="log-meta">Alert: {alert.text || '—'}</div>
-                </div>
-                <div className="log-count">
-                  {alert.subscriber_count} sent
-                </div>
-              </div>
-            ))}
         </div>
       </div>
 
