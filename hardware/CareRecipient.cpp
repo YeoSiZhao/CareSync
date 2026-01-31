@@ -33,7 +33,7 @@ WiFiUDP udp;
 const int LOCAL_UDP_PORT = 4210;
 
 // UDP destinations
-IPAddress DEVICE_B_IP(192, 168, 142, 168);
+IPAddress DEVICE_B_IP(192, 168, 142, 195);
 const int DEVICE_B_PORT = 4210;
 
 // Buttons
@@ -239,20 +239,20 @@ void sendFeedback(int id, const char* label, bool r, bool g, bool b) {
   sprintf(deviceBMessage, "%d:%s", id, color);
 
   // Print immediately
-  Serial.printf("[Button] %s pressed\n", label);
+  // Serial.printf("[Button] %s pressed\n", label);
+
+  // Flash color AFTER sending (visual confirmation)
+  flashColor(r, g, b);
 
   // Send UDP → Device B (FIRST - most critical for instant notification)
   udp.beginPacket(DEVICE_B_IP, DEVICE_B_PORT);
   udp.print(deviceBMessage);
   udp.endPacket();
 
-  // Flash color AFTER sending (visual confirmation)
-  flashColor(r, g, b);
-
   // Send HTTP → Backend (slowest, done last)
   sendToBackend(label);
 
-  Serial.printf("[Sent] %s to Device B\n", color);
+  // Serial.printf("[Sent] %s to Device B\n", color);
   isFlashing = false;
 }
 
@@ -267,7 +267,7 @@ void sendToBackend(const char* label) {
                 "\",\"label\":\"" + String(label) +
                 "\",\"timestamp\":\"" + getTimestamp() + "\"}";
   int code = http.POST(body);
-  Serial.printf("POST /api/event [%d]\n", code);
+  // Serial.printf("POST /api/event [%d]\n", code);
   http.end();
 }
 
@@ -280,7 +280,7 @@ void sendHeartbeat() {
 
   String body = "{\"device_id\":\"" + String(DEVICE_ID) + "\"}";
   int code = http.POST(body);
-  Serial.printf("POST /api/heartbeat [%d]\n", code);
+  // Serial.printf("POST /api/heartbeat [%d]\n", code);
   http.end();
 }
 

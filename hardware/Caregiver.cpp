@@ -17,11 +17,10 @@ const char* BACKEND_BASE = "http://192.168.142.184:8080";
 const char* HEARTBEAT_URL = "/api/heartbeat";
 const char* DEVICE_ID = "Caregiver";
 
-
 // RGB LED PINS (COMMON ANODE)
-const int RED_PIN = 23;
-const int GREEN_PIN = 22;
-const int BLUE_PIN = 21;
+const int RED_PIN = 13;
+const int GREEN_PIN = 14;
+const int BLUE_PIN = 27;
 
 // UDP
 WiFiUDP udp;
@@ -33,7 +32,7 @@ const int FLASH_ON_MS = 200;
 const int FLASH_OFF_MS = 200;
 
 // Buzzer
-const int BUZZER_PIN = 18;
+const int BUZZER_PIN = 25;
 
 // TASK/QUEUE
 QueueHandle_t msgQueue;
